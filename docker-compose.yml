@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  fastapi:
+    build: .
+    container_name: yoon_api
+    image: fastapi
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8088 --reload
+    ports:
+      - 8088:8088
+    volumes:
+      - ./app:/code/app
