@@ -298,6 +298,14 @@ def summarize(openai: any,answer: str) -> str:
     return completion
 
 
+def load_environment_variables(file_path):
+    with open(file_path) as f:
+        for line in f:
+            name, value = line.strip().split('=')
+            os.environ[name] = value
+
+
+
 @app.get("/get_messages/{room}/{msg}/{sender}")
 async def get_messages(room: str, msg: str, sender: str):
     room = urllib.parse.unquote(room)
@@ -346,16 +354,20 @@ async def add_message(message_data: MessageData):
 
     return {"status": "success"}
 
+
 def get_db_connection():
+    load_environment_variables('env_variables')
+    
     connection = mysql.connector.connect(
-       host='172.17.0.2',
-        port=3306,
-        user='root',
-        password='1234',
-        database='chat_db',
-        charset='utf8mb4'
+        host=os.environ.get('MYSQL_HOST', 'localhost'),
+        port=int(os.environ.get('MYSQL_PORT', 8080)),
+        user=os.environ.get('MYSQL_USER', 'your_default_username'),
+        password=os.environ.get('MYSQL_PASSWORD', 'your_default_password'),
+        database=os.environ.get('MYSQL_DATABASE', 'your_default_database'),
+        charset=os.environ.get('MYSQL_CHARSET', 'utf8mb4')
     )
     return connection
+
 
 @app.get("/gitclone")
 def git_clone():
