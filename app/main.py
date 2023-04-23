@@ -356,7 +356,14 @@ async def add_message(message_data: MessageData):
 
 
 def get_db_connection():
-    load_environment_variables('../env_variables')
+    
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    print("Current directory:", current_directory)
+    project_root = find_project_root(current_directory)
+    print("Project root directory:", project_root)
+
+    
+    load_environment_variables('/code/app/env_variables')
     
     connection = mysql.connector.connect(
         host=os.environ.get('MYSQL_HOST', 'localhost'),
@@ -367,6 +374,13 @@ def get_db_connection():
         charset=os.environ.get('MYSQL_CHARSET', 'utf8mb4')
     )
     return connection
+
+def find_project_root(current_directory):
+    while not os.path.exists(os.path.join(current_directory, ".git")):
+        current_directory = os.path.dirname(current_directory)
+        if os.path.abspath(current_directory) == os.path.abspath(os.path.join(current_directory, "..")):
+            raise Exception("Project root not found.")
+    return current_directory
 
 
 @app.get("/gitclone")
