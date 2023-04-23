@@ -356,7 +356,7 @@ async def add_message(message_data: MessageData):
 
 
 def get_db_connection():
-    load_environment_variables('env_variables')
+    load_environment_variables('../env_variables')
     
     connection = mysql.connector.connect(
         host=os.environ.get('MYSQL_HOST', 'localhost'),
