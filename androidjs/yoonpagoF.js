@@ -26,8 +26,8 @@ function responseFix(room, msg, sender, isGroupChat, replier, imageDB, packageNa
         if(msg=="git clone")
             replier.reply(httpGet("http://yoonpt.synology.me:8088/gitclone"));
 
-        if (msg.includes("헷") || msg.startsWith("피티야") || msg.startsWith("파고야") || msg.startsWith("윤파고") || msg.startsWith("윤피티")) {
-            let gptmsg = msg.replace("피티야", "").replace("파고야", "").replace("윤파고", "").replace("윤피티", "").replace("헷", "").trim();
+        if (msg.includes("헷") || msg.startsWith("피티 ") || msg.startsWith("피티야") || msg.startsWith("파고야") || msg.startsWith("윤파고") || msg.startsWith("윤피티")) {
+            let gptmsg = msg.replace("피티야", "").replace("파고야", "").replace("윤파고", "").replace("윤피티", "").replace("헷", "").replace("피티 ", "").trim();
             if (gptmsg == "") {
             }
             else {
