@@ -45,8 +45,9 @@ async def post_message(request: Request, data: MessageData):
     # API 키 설정
 
     load_environment_variables('/code/app/env_variables')
-    API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key'),
+    API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key')
     openai.api_key = API_KEY
+    #print("API_KEY  " + API_KEY)
     openai.organization = os.environ.get('CHATGPT_ORGANIZATION_ID', 'no-org-id')
 
     print(f"Room: {decoded_room}, Msg: {decoded_msg}, Sender: {decoded_sender}")
