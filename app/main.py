@@ -30,10 +30,29 @@ def get_db_connection():
 
 
 def load_environment_variables(file_path):
-    with open(file_path) as f:
+    with open(file_path,"r") as f:
         for line in f:
-            name, value = line.strip().split('=')
-            os.environ[name] = value
+            key, value = line.strip().split('=')
+            os.environ[key] = value
+
+
+# engine: 사용할 AI 모델의 이름입니다. 예를 들어, text-davinci-002와 같이 특정 모델을 지정할 수 있습니다.
+# prompt: API에 전달할 텍스트 프롬프트입니다. 이 텍스트를 기반으로 AI가 응답을 생성합니다.
+# max_tokens: 생성되는 응답 텍스트의 최대 토큰 수입니다. 이 값은 결과의 길이를 조절하는 데 사용됩니다.
+# n: 생성할 결과 수입니다. 이 매개변수를 사용하면 여러 개의 독립적인 응답을 생성할 수 있습니다.
+# stop: 생성된 텍스트에서 중지해야 하는 문자열 목록입니다. 예를 들어, 문단 끝에 도달했을 때 생성을 중지하려면 stop=['\n\n']를 사용할 수 있습니다.
+# temperature: 결과의 다양성을 제어하는 값입니다. 높은 값(예: 1.0)은 더 다양한 결과를 생성하며, 낮은 값(예: 0.2)은 더 일관된 결과를 생성합니다.
+
+
+def summarize(openai: any,answer: str) -> str:
+    completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{
+            'role': 'user',
+            'content': f'아래 대화내용에서 너는 yoonpt야. 한국어로 주제별로 한문장으로 요약해줘 ###\n{answer}\n###'
+        }],
+    )
+    return completion
 
 @app.get("/get_message/{room}")
 async def get_message(room: str):
@@ -43,10 +62,8 @@ async def get_message(room: str):
 
 @app.post("/post_message/")
 async def post_message(request: Request, data: MessageData):
-    # 데이터를 처리하는 데 필요한 코드를 여기에 작성하세요.
-    # 예를 들어, 데이터를 출력할 수 있습니다.
     raw_data = await request.body()
-    #print(f"Raw data: {raw_data}")
+
     decoded_room = urllib.parse.unquote(data.room)
     decoded_msg = urllib.parse.unquote(data.msg)
     decoded_sender = urllib.parse.unquote(data.sender)
@@ -60,7 +77,6 @@ async def post_message(request: Request, data: MessageData):
     now_kst = now_utc.replace(tzinfo=pytz.utc).astimezone(kst_tz)
 
     # API 키 설정
-
     load_environment_variables('/code/app/env_variables')
     API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key')
     openai.api_key = API_KEY
@@ -69,17 +85,12 @@ async def post_message(request: Request, data: MessageData):
 
     print(f"Room: {decoded_room}, Msg: {decoded_msg}, Sender: {decoded_sender}")
 
-
-
-
     # OpenAI API 호출
     prompt_text = decoded_msg
-    # Define the messages to send to the model
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": prompt_text},
     ]
-
         
     connection = get_db_connection()
     try:        
@@ -295,33 +306,6 @@ async def post_message(request: Request, data: MessageData):
     }
     return response_data
 
-
-# engine: 사용할 AI 모델의 이름입니다. 예를 들어, text-davinci-002와 같이 특정 모델을 지정할 수 있습니다.
-# prompt: API에 전달할 텍스트 프롬프트입니다. 이 텍스트를 기반으로 AI가 응답을 생성합니다.
-# max_tokens: 생성되는 응답 텍스트의 최대 토큰 수입니다. 이 값은 결과의 길이를 조절하는 데 사용됩니다.
-# n: 생성할 결과 수입니다. 이 매개변수를 사용하면 여러 개의 독립적인 응답을 생성할 수 있습니다.
-# stop: 생성된 텍스트에서 중지해야 하는 문자열 목록입니다. 예를 들어, 문단 끝에 도달했을 때 생성을 중지하려면 stop=['\n\n']를 사용할 수 있습니다.
-# temperature: 결과의 다양성을 제어하는 값입니다. 높은 값(예: 1.0)은 더 다양한 결과를 생성하며, 낮은 값(예: 0.2)은 더 일관된 결과를 생성합니다.
-
-
-def summarize(openai: any,answer: str) -> str:
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{
-            'role': 'user',
-            'content': f'아래 대화내용에서 너는 yoonpt야. 한국어로 주제별로 한문장으로 요약해줘 ###\n{answer}\n###'
-        }],
-    )
-
-
-    return completion
-
-
-def load_environment_variables(file_path):
-    with open(file_path) as f:
-        for line in f:
-            name, value = line.strip().split('=')
-            os.environ[name] = value
 
 
 
