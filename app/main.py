@@ -1,13 +1,13 @@
+import os
+import urllib.parse
+from datetime import datetime
+
+import mysql.connector
+import openai
+import pytz
+import subprocess
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
-from datetime import datetime
-import mysql.connector
-import urllib.parse
-import openai
-import os
-import subprocess
-import pytz
-
 
 app = FastAPI()
 
@@ -17,6 +17,23 @@ class MessageData(BaseModel):
     sender: str
     data: str = None
 
+def get_db_connection():
+    return mysql.connector.connect(
+        host=os.environ.get('MYSQL_HOST', 'localhost'),
+        port=int(os.environ.get('MYSQL_PORT', 8080)),
+        user=os.environ.get('MYSQL_USER', 'your_default_username'),
+        password=os.environ.get('MYSQL_PASSWORD', 'your_default_password'),
+        database=os.environ.get('MYSQL_DATABASE', 'your_default_database'),
+        charset=os.environ.get('MYSQL_CHARSET', 'utf8mb4')
+    )
+    
+
+
+def load_environment_variables(file_path):
+    with open(file_path) as f:
+        for line in f:
+            name, value = line.strip().split('=')
+            os.environ[name] = value
 
 @app.get("/get_message/{room}")
 async def get_message(room: str):
@@ -356,23 +373,6 @@ async def add_message(message_data: MessageData):
 
     return {"status": "success"}
 
-
-def get_db_connection():
-    
-    # current_directory = os.path.dirname(os.path.realpath(__file__))
-    # print("Current directory:", current_directory)
-
-    
-    
-    connection = mysql.connector.connect(
-        host=os.environ.get('MYSQL_HOST', 'localhost'),
-        port=int(os.environ.get('MYSQL_PORT', 8080)),
-        user=os.environ.get('MYSQL_USER', 'your_default_username'),
-        password=os.environ.get('MYSQL_PASSWORD', 'your_default_password'),
-        database=os.environ.get('MYSQL_DATABASE', 'your_default_database'),
-        charset=os.environ.get('MYSQL_CHARSET', 'utf8mb4')
-    )
-    return connection
 
 
 @app.get("/gitclone")
