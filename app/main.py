@@ -11,9 +11,10 @@ import pytz
 
 # API 키 설정
 
-API_KEY = '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'
+load_environment_variables('/code/app/env_variables')
+API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key'),
 openai.api_key = API_KEY
-openai.organization = "org-1xeCXyWFAkxdLby2WUUciCsI"
+openai.organization = os.environ.get('CHATGPT_ORGANIZATION_ID', 'no-org-id')
 app = FastAPI()
 
 class MessageData(BaseModel):
@@ -361,7 +362,6 @@ def get_db_connection():
     # print("Current directory:", current_directory)
 
     
-    load_environment_variables('/code/app/env_variables')
     
     connection = mysql.connector.connect(
         host=os.environ.get('MYSQL_HOST', 'localhost'),
