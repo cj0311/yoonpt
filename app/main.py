@@ -95,59 +95,9 @@ async def post_message(request: Request, data: MessageData):
     connection = get_db_connection()
     try:        
         cursor = connection.cursor()
-
-        query = """
-            SELECT summarized_msg
-            FROM gpt_room_talk
-            WHERE room = %s
-            ORDER BY seq DESC
-            LIMIT 1
-        """
-
-        cursor.execute(query, (data.room,))
-
-        # 결과를 얻음
-        row = cursor.fetchone()
-        if row and row[0] is not None:
-            # print("DB에 summarized 데이터가 있음")
-            summarized_content = urllib.parse.unquote(row[0])
-            print("summarized_content : " + summarized_content)
-        else: # DB에 데이터가 없으면            
-        # 상위 10개 데이터를 선택하는 쿼리
-            # print("DB에 summarized 데이터가 없음")
-            query = """
-                SELECT talker, msg, sender
-                FROM gpt_room_talk
-                where room = %s
-                ORDER BY seq DESC
-                LIMIT 16
-            """
-
-            cursor.execute(query,(data.room,))
-
-            # 선택한 데이터를 출력
-            result = cursor.fetchall()
-            combined_msgs = ""
-            for row in reversed(result):
-                result_sender = urllib.parse.unquote(row[2])
-                result_msg = urllib.parse.unquote(row[1])  # 이미 인코딩된 msg
-                combined_msgs += f"{result_sender}: {result_msg}\n"            
-            #summarized = summarize(openai, result_msg)   
-            # summarized = result_msg
-            # message_json = {"role": reslut_talker, "content": summarized}
-            # messages.insert(0,message_json)
-            summarized = summarize(openai, combined_msgs)
-            # print("combined_msgs : " + combined_msgs)
-            summarized_content =  summarized.choices[0].message.content
-            # print("summarized content : " + summarized_content)
-            summarized_prompt_tokens = summarized.usage["prompt_tokens"]
-            summarized_completion_tokens =  summarized.usage["completion_tokens"]
-            summarized_total_tokens =  summarized.usage["total_tokens"]
-            print(f"newly summarized: Prompt tokens: {summarized_prompt_tokens} Completion tokens: {summarized_completion_tokens} Total tokens: {summarized_total_tokens}")
-            
-            
-        message_json = {"role": "user", "content": summarized_content}
-        messages.insert(0,message_json)
+        
+        summarized_content = get_summarized_content(data, connection, cursor, openai)
+        messages.insert(0,{"role": "user", "content": summarized_content})
         
         
     except Exception as e:
@@ -306,8 +256,49 @@ async def post_message(request: Request, data: MessageData):
     }
     return response_data
 
+def get_summarized_content(data, connection, cursor, openai):
+    query = """
+    SELECT summarized_msg
+    FROM gpt_room_talk
+    WHERE room = %s
+    ORDER BY seq DESC
+    LIMIT 1
+    """
+    cursor.execute(query, (data.room,))
+
+    row = cursor.fetchone()
+    if row and row[0] is not None:
+        summarized_content = urllib.parse.unquote(row[0])
+    else:
+        combined_msgs = fetch_combined_messages(data, connection, cursor)
+        summarized = summarize(openai, combined_msgs)
+        summarized_content = summarized.choices[0].message.content
+        summarized_prompt_tokens = summarized.usage["prompt_tokens"]
+        summarized_completion_tokens = summarized.usage["completion_tokens"]
+        summarized_total_tokens = summarized.usage["total_tokens"]
+        print(f"newly summarized: Prompt tokens: {summarized_prompt_tokens} Completion tokens: {summarized_completion_tokens} Total tokens: {summarized_total_tokens}")
+
+    return summarized_content
 
 
+def fetch_combined_messages(data, connection, cursor):
+    query = """
+    SELECT talker, msg, sender
+    FROM gpt_room_talk
+    where room = %s
+    ORDER BY seq DESC
+    LIMIT 16
+    """
+    cursor.execute(query, (data.room,))
+
+    result = cursor.fetchall()
+    combined_msgs = ""
+    for row in reversed(result):
+        result_sender = urllib.parse.unquote(row[2])
+        result_msg = urllib.parse.unquote(row[1])
+        combined_msgs += f"{result_sender}: {result_msg}\n"
+
+    return combined_msgs
 
 @app.get("/get_messages/{room}/{msg}/{sender}")
 async def get_messages(room: str, msg: str, sender: str):
