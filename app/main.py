@@ -9,12 +9,6 @@ import subprocess
 import pytz
 
 
-# API 키 설정
-
-load_environment_variables('/code/app/env_variables')
-API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key'),
-openai.api_key = API_KEY
-openai.organization = os.environ.get('CHATGPT_ORGANIZATION_ID', 'no-org-id')
 app = FastAPI()
 
 class MessageData(BaseModel):
@@ -48,6 +42,12 @@ async def post_message(request: Request, data: MessageData):
     # 현재 시간을 KST로 변경
     now_kst = now_utc.replace(tzinfo=pytz.utc).astimezone(kst_tz)
 
+    # API 키 설정
+
+    load_environment_variables('/code/app/env_variables')
+    API_KEY=os.environ.get('CHATGPT_APIKEY', 'no-key'),
+    openai.api_key = API_KEY
+    openai.organization = os.environ.get('CHATGPT_ORGANIZATION_ID', 'no-org-id')
 
     print(f"Room: {decoded_room}, Msg: {decoded_msg}, Sender: {decoded_sender}")
 
