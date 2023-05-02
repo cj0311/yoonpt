@@ -134,113 +134,8 @@ async def post_message(request: Request, data: MessageData):
     print(f"Connection: {connection}")
     try:
         cursor = connection.cursor()
-        today = datetime.now().strftime("%Y%m%d")
-        current_time = now_kst
-
-        # KST 시간 출력
-        # print(now_kst)
-
-        sql_update = """
-            UPDATE gpt_room_seq SET last_seq = (select max(seq) from gpt_room_talk where room= %s ) WHERE room = %s
-            """
-        cursor.execute(sql_update, ( data.room, data.room))
-        print(f"Updated sequence number to latest seq for room {data.room}")
-        
-
-
-
-        # Get the last sequence number for the given room
-        sql_select = """
-        SELECT last_seq FROM gpt_room_seq WHERE room = %s
-        """
-        cursor.execute(sql_select, (data.room,))
-        result = cursor.fetchone()
-
-        if result:
-            last_seq = result[0]
-            new_seq = last_seq + 1
-            sql_update = """
-            UPDATE gpt_room_seq SET last_seq = %s WHERE room = %s
-            """
-            cursor.execute(sql_update, (new_seq, data.room))
-            print(f"Updated sequence number for room {data.room} to {new_seq}")
-        else:
-            new_seq = 1
-            sql_insert = """
-            INSERT INTO gpt_room_seq (room, last_seq) VALUES (%s, %s)
-            """
-            cursor.execute(sql_insert, (data.room, new_seq))
-            print(f"Inserted new sequence number for room {data.room} to {new_seq}")
-
-        # Insert the new message with the updated sequence number
-        sql = """
-        INSERT INTO gpt_room_talk  (seq, room,talker ,basedt, sender, msg, createdtime)
-        VALUES (%s, %s,%s, %s, %s, %s, %s)
-        """
-        cursor.execute(sql, (new_seq, data.room, "user",today, data.sender, data.msg, current_time))
-        print(f"Inserted new message for room {data.room} with sequence number {new_seq}")
-        connection.commit()
-    except Exception as e:
-        print(f"Error: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while inserting data into the database.")
-    finally:
-        cursor.close()
-        connection.close()
-        
-    # summarized와 기존 prompt_text와 assistant_reply를 합친 문자열을 통해 summarized를 다시 구함
-    
-    combined_summarized_msg = f"지금까지의 대화 요약 내용 : {summarized_content}\n" \
-        + f"{decoded_sender}: {prompt_text}\n" \
-        + f"yoonpt: {assistant_reply}\n"
-    # print ("combined_summarized_msg : " + combined_summarized_msg )
-    summarized_new_content = summarize(openai, combined_summarized_msg).choices[0].message.content
-    print ("summarized_new_content: " + summarized_new_content )
-    
-    # DB에 저장 (assistant 답변값)
-    connection = get_db_connection()
-    try:
-        encoded_assistant_reply = urllib.parse.quote(assistant_reply)
-        encoded_summarized_new_content = urllib.parse.quote(summarized_new_content)
-        cursor = connection.cursor()
-        today = datetime.now().strftime("%Y%m%d")
-        current_time = now_kst
-
-        # KST 시간 출력
-        print(now_kst)
-        # Get the last sequence number for the given room
-        sql_select = """
-        SELECT last_seq FROM gpt_room_seq WHERE room = %s
-        """
-        cursor.execute(sql_select, (data.room,))
-        result = cursor.fetchone()
-
-        if result:
-            last_seq = result[0]
-            new_seq = last_seq + 1
-            sql_update = """
-            UPDATE gpt_room_seq SET last_seq = %s WHERE room = %s
-            """
-            cursor.execute(sql_update, (new_seq, data.room))
-            print(f"Updated sequence number for room {data.room} to {new_seq}")
-        else:
-            new_seq = 1
-            sql_insert = """
-            INSERT INTO gpt_room_seq (room, last_seq) VALUES (%s, %s)
-            """
-            cursor.execute(sql_insert, (data.room, new_seq))
-            print(f"Inserted new sequence number for room {data.room} to {new_seq}")
-
-        # Insert the new message with the updated sequence number
-        sql = """
-        INSERT INTO gpt_room_talk  (seq, room,talker ,basedt, sender, msg, createdtime, summarized_msg )
-        VALUES (%s, %s,%s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(sql, (new_seq, data.room,"assistant", today, "yoonpt", encoded_assistant_reply, current_time, encoded_summarized_new_content))
-        
-
-        
-        print(f"Inserted new message for room {data.room} with sequence number {new_seq} and assistant reply...")
-        connection.commit()
+        save_user_input_to_db(data, now_kst, connection, cursor)
+        save_assistant_reply_to_db(data, now_kst, assistant_reply, summarized_content, prompt_text, connection, cursor)
     except Exception as e:
         print(f"Error: {e}")
         raise HTTPException(status_code=500, detail="An error occurred while inserting data into the database.")
@@ -299,6 +194,62 @@ def fetch_combined_messages(data, connection, cursor):
         combined_msgs += f"{result_sender}: {result_msg}\n"
 
     return combined_msgs
+
+def save_user_input_to_db(data, now_kst, connection, cursor):
+    update_sequence_number(data.room, cursor)
+    last_seq, new_seq = get_sequence_number(data.room, cursor)
+    insert_new_message(data, now_kst, cursor, new_seq, "user", data.sender, data.msg)
+    connection.commit()
+    
+def save_assistant_reply_to_db(data, now_kst, assistant_reply, summarized_content, prompt_text, connection, cursor):
+    update_sequence_number(data.room, cursor)
+    last_seq, new_seq = get_sequence_number(data.room, cursor)
+    encoded_assistant_reply = urllib.parse.quote(assistant_reply)
+    combined_summarized_msg = f"지금까지의 대화 요약 내용 : {summarized_content}\n"
+    f"{data.sender}: {prompt_text}\n"
+    f"yoonpt: {assistant_reply}\n"
+    summarized_new_content = summarize(openai, combined_summarized_msg).choices[0].message.content
+    insert_new_message(data, now_kst, cursor, new_seq, "assistant", "yoonpt", encoded_assistant_reply, summarized_new_content)
+    connection.commit()    
+    
+def update_sequence_number(room, cursor):
+    sql_update = """
+    UPDATE gpt_room_seq SET last_seq = (select max(seq) from gpt_room_talk where room= %s ) WHERE room = %s
+    """
+    cursor.execute(sql_update, (room, room))
+    print(f"Updated sequence number to latest seq for room {room}")
+
+def get_sequence_number(room, cursor):
+    sql_select = """
+    SELECT last_seq FROM gpt_room_seq WHERE room = %s
+    """
+    cursor.execute(sql_select, (room,))
+    result = cursor.fetchone()
+    if result:
+        last_seq = result[0]
+        new_seq = last_seq + 1
+    else:
+        new_seq = 1
+
+    return last_seq, new_seq
+
+def insert_new_message(data, now_kst, cursor, seq, talker, sender, msg, summarized_msg=None):
+    today = datetime.now().strftime("%Y%m%d")
+    current_time = now_kst
+    if summarized_msg:
+        sql = """
+        INSERT INTO gpt_room_talk (seq, room, talker, basedt, sender, msg, createdtime, summarized_msg)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(sql, (seq, data.room, talker, today, sender, msg, current_time, summarized_msg))
+    else:
+        sql = """
+        INSERT INTO gpt_room_talk (seq, room, talker, basedt, sender, msg, createdtime)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(sql, (seq, data.room, talker, today, sender, msg, current_time))
+
+    print(f"Inserted new message for room {data.room} with sequence number {seq} and talker {talker}")
 
 @app.get("/get_messages/{room}/{msg}/{sender}")
 async def get_messages(room: str, msg: str, sender: str):
