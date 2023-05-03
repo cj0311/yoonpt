@@ -229,6 +229,7 @@ def get_sequence_number(room, cursor):
         last_seq = result[0]
         new_seq = last_seq + 1
     else:
+        last_seq=1
         new_seq = 1
 
     return last_seq, new_seq
