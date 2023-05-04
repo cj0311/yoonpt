@@ -41,62 +41,42 @@ var day = date.getDate();
 String.prototype.ltrim = function () { return this.replace(/^\s+/, ''); }
 
 function responseFix(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-  date = new Date();
-   year = date.getFullYear();
-   month = date.getMonth() + 1;
-   day = date.getDate();
-  /* if (sender == "창진" ){
-      replier.reply("room : " + room);
-      replier.reply("msg " + msg);
-      replier.reply("sender " + sender);
-      replier.reply("isGroupChat " + isGroupChat);
-      replier.reply("replier " + replier);
-      replier.reply("imageDB " + imageDB);
-      replier.reply("pakcageName " + packageName);
-      replier.reply("threadId " + threadId);    
-
-   }*/
-  //if (sender == "jinn" && room == "윤파고admin") {
-  //  manager_mode(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId);
-    /* 관리자모드. 테스트계 및 개발계 */
-  //}
-   try {
-  user_mode(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId);
-   }
-   catch(e){
-     room = "윤파고admin";
-     Api.replyRoom(room,e,hideToast=false) 
-
-   }
+  try {
+    user_mode(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId);
+  } catch (e) {
+    room = "윤파고admin";
+    Api.replyRoom(room, e, false);
+  }
 }
 
-
-function RSPmsg(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-  var RSP = ['가위', '바위', '보'];
-  RSP_bot = RSP[Math.floor((Math.random() * 3))];
+function RSPmsg(room, msg, sender, isGroupChat, replier) {
+  const RSP = ['가위', '바위', '보'];
+  const RSP_bot = RSP[Math.floor(Math.random() * 3)];
   replier.reply(RSP_bot);
-  if (msg == RSP_bot) {
+
+  if (msg === RSP_bot) {
     replier.reply('비겼습니다');
-  }
-  else if ((msg == '가위' && RSP_bot == '바위') || (msg == '보' && RSP_bot == '가위') || (msg == '바위' && RSP_bot == '보')) {
+  } else if (
+    (msg === '가위' && RSP_bot === '바위') ||
+    (msg === '보' && RSP_bot === '가위') ||
+    (msg === '바위' && RSP_bot === '보')
+  ) {
     replier.reply('당신은 졌습니다');
-  }
-  else {
+  } else {
     replier.reply('당신은 이겼습니다');
   }
 }
-function translatemsg(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-  if (msg == "번역") {
-    replier.reply("윤파고가 번역을 시도합니다.\nex)번역 안녕 윤파고");
 
-  } else if (msg.substr(0, 3) == "번역 ") {
-    if (scanlang(msg.substr(4)).substr(13, 2) == 'ko') {
+function translatemsg(room, msg, sender, isGroupChat, replier) {
+  if (msg === "번역") {
+    replier.reply("윤파고가 번역을 시도합니다.\nex)번역 안녕 윤파고");
+  } else if (msg.startsWith("번역 ")) {
+    if (scanlang(msg.slice(4)).slice(13, 15) === 'ko') {
       replier.reply("음... 이건 영어로 아마 요렇게 말할거에여");
-      replier.reply(papagoNMT('ko', 'en', msg.substr(3)));
-    }
-    else {
+      replier.reply(papagoNMT('ko', 'en', msg.slice(3)));
+    } else {
       replier.reply("음... 이건 한글로 이렇게 말해여");
-      replier.reply(papagoNMT(scanlang(msg.substr(4)).substr(13, 2), 'ko', msg.substr(3)));
+      replier.reply(papagoNMT(scanlang(msg.slice(4)).slice(13, 15), 'ko', msg.slice(3)));
     }
   }
 }

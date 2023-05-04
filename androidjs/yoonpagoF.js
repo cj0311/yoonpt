@@ -162,7 +162,7 @@ function decodeSpecialChars(str) {
             Api.replyRoom("윤피티_문자메세지", textDataLog, false);
             }
             function replyETC(textDataLog) {
-            Api.replyRoom("윤피티_Etc", textDataLog, false);
+            Api.replyRoom("윤피티Etc", textDataLog, false);
             }
             function createTextDataLog(textData, packageName) {
                 return "Notification Text Data:\n" +
