@@ -1,4 +1,14 @@
 
+/* 맛집찾기 */
+var img = ['', '', '', '', ''];
+var ee = ['', '', '', '', ''];
+var vv = ['', '', '', '', ''];
+var dd = ['', '', '', '', ''];
+var f = ['', '', '', '', ''];
+var doc = ['', '', '', '', ''];
+var d = ['', '', '', '', ''];
+var search
+var appkey;
 
 exports.findmap = function(){
 function findmap(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {

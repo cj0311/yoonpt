@@ -10,16 +10,6 @@ let loop = false;
 let on = false;
 let alarm = [];
 
-/* 맛집찾기 */
-var img = ['', '', '', '', ''];
-var ee = ['', '', '', '', ''];
-var vv = ['', '', '', '', ''];
-var dd = ['', '', '', '', ''];
-var f = ['', '', '', '', ''];
-var doc = ['', '', '', '', ''];
-var d = ['', '', '', '', ''];
-var search
-var appkey;
 Jsoup = org.jsoup.Jsoup;
 const kalingModule = require('kaling').Kakao();
 const Kakao = new kalingModule;
@@ -49,6 +39,15 @@ const stockcommand = require('modules/stockcommand').stockcommand();
 const findmap = require('modules/findmap').findmap();
 const newscommand = require('modules/newscommand').newscommand();
 const papagoNMT = require('modules/papagoNMT').papagoNMT();
+const readlearnnote = require('modules/readlearnnote').readlearnnote();
+const deletemsg = require('modules/deletemsg').deletemsg();
+const speak_nonsense = require('modules/speak_nonsense').speak_nonsense();
+const store = require('modules/store').store();
+const store2 = require('modules/store2').store2();
+const send_template = require('modules/send_template').send_template();
+const kakao_login = require('modules/kakao_login').kakao_login();
+const findrestaurant2 = require('modules/findrestaurant2').findrestaurant2();
+
 
 
 var date = new Date();
@@ -71,116 +70,6 @@ function responseFix(room, msg, sender, isGroupChat, replier, imageDB, packageNa
 
 
 
-function findrestaurant2(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-  if (msg == "맛집") {
-    replier.reply("윤파고가 맛집을 검색합니다.\n ex) 맛집 강서구 횟집")
-
-  }
-  else if (msg.startsWith("맛집 ")) {
-    //초기화
-    img = ['', '', '', '', ''];
-    ee = ['', '', '', '', ''];
-    vv = ['', '', '', '', ''];
-    dd = ['', '', '', '', ''];
-    f = ['', '', '', '', ''];
-    doc = ['', '', '', '', ''];
-    d = ['', '', '', '', ''];
-
-    search = msg.substr(3).trim();
-    appkey = '56f8fab7339038f876ad0d5a02c7513d';
-    kakao_login(appkey);
-    doc = Jsoup.connect("https://www.mangoplate.com/search/" + search).get();
-    var forthemore = "search/" + search;
-    store();
-
-    if (ee[0] == ' ') {
-      replier.reply("흠...?")
-
-    } else {
-      // user argument 에 생성한 변수값 대입
-      let set = {
-        m: search, d1: d[0], d2: d[1], d3: d[2], d4: d[3], d5: d[4], e1: ee[0], v1: vv[0], i1: img[0], e2: ee[1], v2: vv[1],
-        i2: img[1], e3: ee[2], v3: vv[2], i3: img[2], e4: ee[3], v4: vv[3], i4: img[3], e5: ee[4], v5: vv[4], i5: img[4],
-        ftm: forthemore
-      }
-      try {
-        send_template(room, 33944, set);
-      } catch (error) {
-        replier.reply('방이름이 잘못되었습니다.\n건의기능을 통해 방이름을 변경해달라고 요청해주세요.');
-      }
-    }
-  }
-}
-/* 카카오링크 사용을 위해 로그인 세션이 만료되지 않게하기 위함 */
-function kakao_login(appkey) {
-  try {
-    Kakao.init(appkey); // 중요포인트 : 반드시 봇계정 카카오아이디와 패스워드로 카카오디벨로퍼에 로그인하여 자바스크립트 키값을 받아올것!
-    Kakao.login('yoonpepe0@gmail.com', 'aa985325');// 중요포인트 : 반드시 봇계정 카카오아이디와 패스워드를 적어줄것!!
-
-  } catch (e) { replier.reply(e + "\n로그인 세션이 만료되었습니다.") }
-}
-
-/* 카카오 디벨로퍼에 만든 템플릿 형식 보냄 */
-function send_template(room, id, set) {
-  let template = {};
-  template['link_ver'] = '4.0';
-  template['template_id'] = id;
-  template['template_args'] = set;
-  Kakao.send(room, template, 'custom');
-}
-
-/* 템플릿 type-object가 리스트이고, 리스트가 5개일시, 만약 리스트가 5개미만이라면 형식에 맞지 않아 전부다 공백으로 출력됩니다.
-따라서, try-catch 문을 활용하여 검색결과가 없을시에, 공백이 반환되도록 예외처리를 하였습니다.*/
-function store2(replier) {
-  var storeinfo = doc.select("div[class=rlfl__tls rl_tls]").get(0);
-  var i, j;
-  var store_name;
-  var store_detail0;
-  var store_detail1;
-
-  //replier.reply(storeinfo);
-  i = 0;
-  for (j = 0; j < 5; j++) {
-    try {
-      //replier.reply(i + "번째");
-      ee[j] = storeinfo.select("div[role=heading]").get(i).text();
-      store_detail0 = storeinfo.select("a[role=link]").get(i);
-      store_detail1 = store_detail0.select("span").get(0);
-      vv[j] = "★" + store_detail1.select("span").get(0).text();
-      ee[j] = ee[j].replace(/[ ]/gi, '');
-      d[j] = "/search?newwindow=1&client=ms-android-skt-kr&sxsrf=ALeKk00m2dlRMzQDnsvNG4cgCGC-vIR5-g:1597168358340&q=" + ee[j] +  "&npsic=0&rflfq=1&rlha=0&tbm=lcl";
-      //  replier.reply(ee[j]);
-      if (ee[j].indexOf("이광고가표시된이유") > -1) {
-        //replier.reply("광고있음");
-        j--;
-      }
-      i++;
-      if (i > 10)
-        break;
-    } catch (e) { img[i] = null, ee[j] = ' ', vv[j] = ' ', e[j] = null, f[j] = null; }
-  }
-
-
-
-}
-
-function store() {
-  var i;
-  for (i = 0; i < 5; i++) {
-    try {
-      img[i] = doc.select("img[class=center-croping lazy]").get(i).attr("abs:data-original"); //이미지 파싱
-      ee[i] = doc.select("h2.title").get(i).text(); //가게이름
-      vv[i] = doc.select("p.etc").get(i).text(); //가게 위치 및 음식 정보
-      dd[i] = ee[i].replace(/[ ]/gi, '') + " " + vv[i]; // 가게이름 + 위치정보 -> 검색하기 위함
-      f[i] = ((dd[i].split("-"))[0].split("/"))[0].replace(/[.]/gi, '').replace(/[(]/gi, ' ').replace(/[)]/gi, ' ').replace(/[,]/gi, '');
-      /* 가게이름에 특수문자 제거,//위치 역시 지역이 3개이상시 검색이 안되길래, 위치가 방배/반포/잠원 이런식으로 '/'로 구분되어있어서,
-      지역하나와 특수문자가 제거된 가게이름으로 검색하여 오류 제거*/
-      d[i] = (Jsoup.connect("https://www.mangoplate.com/search/" + f[i]).get()).select('div.info > a').get(0).attr('href');
-      // 가게 이미지 누르면 가게 이름 검색된 페이지 나옴. 가게이름+지역정보로 검색된 해당 가게정보가 바로 나오게끔 절대주소 파싱
-    } catch (e) { img[i] = null, ee[i] = ' ', vv[i] = ' ', dd[i] = null, f[i] = null; }
-    // 오류났을시, 가게이름과 해당 속성값 ' '처리 -> null 일 경우 템플릿형식에 맞지않아 전부다 공백으로 나옴
-  }
-}
 
 /* 메신저봇 실행 */
 
@@ -200,31 +89,6 @@ function readcommand(room, msg, sender, isGroupChat, replier, imageDB, packageNa
 function readfetch(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
   var fetchnotetxt = read(sdcard + "/yoonpago_setting/fetchnote.txt");
   replier.reply(fetchnotetxt);
-}
-function readlearnnote(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-  var studylists = readdir(sdcard + "/yoonpago_db/" + room + "/학습");
-  var i = 0;
-  var studylist = "-----학습목록-----\n";
-  if(studylists == null ){
-    replier.reply("학습한게 없서요...");
-    return null;
-}
-  while (i < studylists.length) {
-    studylist = studylist + studylists[i].split(".txt")[0];
-    i = i + 1;
-    if (i != studylists.length)
-      studylist = studylist + "\n";
-  }
-  replier.reply(studylist);
-}
-function deletemsg(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
-
-  var del_msg = msg.substr(3);
-  if (deletecommand(sdcard + "/yoonpago_db/" + room + "/학습/" + del_msg.trim() + ".txt")) {
-    replier.reply(del_msg + "를(을) 잊었습니다.");
-  } else {
-    replier.reply("난 모르는 일이오...");
-  }
 }
 function suggestionmsg(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
   var sug_msg = msg.substr(3);
@@ -262,82 +126,6 @@ function touch(obj) {
 
 
 
-function   speak_nonsense(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId){
-
-  if(msg == "넌센스퀴즈"){
-    replier.reply("윤파고의 넌센스 퀴즈~!\n넌센스 n(숫자)를 치시면 (30 x n)초 뒤에 정답을 공개합니다.(아무것도 안칠시 30초, 최대 5분)\nex) 넌센스 n -> (30 x n)초 뒤 정답 공개")
-  }
-  else{      
-    if(msg.startsWith("넌센스 ") || msg == "넌센스"){
-      var m;
-
-      if(msg == "넌센스"){
-        m = 1;
-    //   replier.reply("확인1");
-      }        
-      else{
-      var q = msg.split(" " ); 
-      m = q[1];
-
-        if(m != 1 && m !=2 && m!=3 && m!=4 &&m!=5 &&m!=6 &&m!=7 &&m!=8 &&m!=9 &&m!=10 ){
-          replier.reply("시간설정이 이상해요. 다시해주세용~") 
-          return;
-        }
-      }      
-       var retnon = nonsense() ;    
-      
-      
-        replier.reply("Q"+retnon.reason+". " + retnon.quiz);
-        //replier.reply("확인2");   
-        var i ;
-        for(i = 0 ; i <m  ; i++ )          
-          java.lang.Thread.sleep(15000);
-
-        if(retnon.reason <937){
-          replier.reply( "힌트 좀 드릴게유~");
-          replier.reply(retnon.hint);
-        }
-
-        for(i = 0 ; i <m ; i++ ) 
-          java.lang.Thread.sleep(15000);
-          replier.reply("정답은");
-        replier.reply(retnon.answer);
-      
-    }
-  }
-}
-
-/*function touch(x, y ) {
-
-  intent = new android.content.Intent("com.matsogeum.touchHelper.receive");
-
-
-  intent.putExtra("x", x);
-  intent.putExtra("y", y);
-
-  Log.info(Api.getContext().sendBroadcast(intent));
-
-  }
-*/
-/*
-function scriptdown(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId){
-var filename = Math.floor(Math.random() * 9999) + 1;
-if(msg.indexOf("/추가하기 ")==0){
-var url = msg.substring(6);
-var Get = Utils.getWebText(url).replace(/(<([^>]+)>)/g, "");
-FS.write(sdcard+"/yoonpago_setting/script"+filename+".js",Get);
-Api.reload(filename+".js");
-replier.reply("추가 성공!\n파일명 : "+filename+".js\n경로 : sdcard/katalkbot/"+filename+"\n\n켜시겠습니까?\n\n1 : 켜기\n2 : 말기");
-}
-if(msg=="1"){
-Api.on(filename+".js");
-replier.reply("켜짐");
-}
-if(msg=="2"){
-replier.reply("말기");
-Api.reload(scriptName);
-}
-}*/
 
 
 /*
