@@ -1,8 +1,4 @@
 
-const RSPmsg = require('RSP').RSP();
-const translatemsg = require('translate').translate();
-
-
 exports.user_mode = function() {
 function user_mode(room, msg, sender, isGroupChat, replier, imageDB, packageName, threadId) {
     var fetchflag = read(sdcard + "/yoonpago_setting/fetch_process/fetch.txt");
